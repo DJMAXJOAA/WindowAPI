@@ -6,6 +6,8 @@
 
 #define MAX_LOADSTRING 100
 
+using namespace std;
+
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
@@ -17,42 +19,43 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPrevInstance,
-                     _In_ LPWSTR    lpCmdLine,
-                     _In_ int       nCmdShow)
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR    lpCmdLine,
+	_In_ int       nCmdShow)
 {
-    UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
+	UNREFERENCED_PARAMETER(hPrevInstance);
+	UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: 여기에 코드를 입력합니다.
+	// TODO: 여기에 코드를 입력합니다.
 
-    // 전역 문자열을 초기화합니다.
-    LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadStringW(hInstance, IDC_WINDOWAPI, szWindowClass, MAX_LOADSTRING);
-    MyRegisterClass(hInstance);
+	// 전역 문자열을 초기화합니다.
+	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+	LoadStringW(hInstance, IDC_WINDOWAPI, szWindowClass, MAX_LOADSTRING);
+	MyRegisterClass(hInstance);
 
-    // 애플리케이션 초기화를 수행합니다:
-    if (!InitInstance (hInstance, nCmdShow))
-    {
-        return FALSE;
-    }
+	// 애플리케이션 초기화를 수행합니다:
+	if (!InitInstance(hInstance, nCmdShow))
+	{
+		return FALSE;
+	}
 
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINDOWAPI));
+	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINDOWAPI));
 
-    MSG msg;
+	MSG msg;
 
-    // 기본 메시지 루프입니다:
-    while (GetMessage(&msg, nullptr, 0, 0))
-    {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-    }
+	// 기본 메시지 루프입니다:
+	while (GetMessage(&msg, nullptr, 0, 0))
+	{
+		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
 
-    return (int) msg.wParam;
+	return (int)msg.wParam;
 }
 
 
@@ -64,23 +67,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
-    WNDCLASSEXW wcex;
+	WNDCLASSEXW wcex;
 
-    wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.cbSize = sizeof(WNDCLASSEX);
 
-    wcex.style          = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc    = WndProc;
-    wcex.cbClsExtra     = 0;
-    wcex.cbWndExtra     = 0;
-    wcex.hInstance      = hInstance;
-    wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWAPI));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+3);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_WINDOWAPI);
-    wcex.lpszClassName  = szWindowClass;
-    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WndProc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = hInstance;
+	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWAPI));
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_WINDOWAPI);
+	wcex.lpszClassName = szWindowClass;
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
-    return RegisterClassExW(&wcex);
+	return RegisterClassExW(&wcex);
 }
 
 //
@@ -95,20 +98,20 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
+	hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-   HWND hWnd = CreateWindowW(szWindowClass, _T("szTitle"), WS_OVERLAPPEDWINDOW | WS_VSCROLL,
-      200, 300, 1024, 768, nullptr, nullptr, hInstance, nullptr);
+	HWND hWnd = CreateWindowW(szWindowClass, _T("szTitle"), WS_OVERLAPPEDWINDOW | WS_VSCROLL,
+		200, 300, 1024, 768, nullptr, nullptr, hInstance, nullptr);
 
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+	if (!hWnd)
+	{
+		return FALSE;
+	}
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+	ShowWindow(hWnd, nCmdShow);
+	UpdateWindow(hWnd);
 
-   return TRUE;
+	return TRUE;
 }
 
 //
@@ -121,172 +124,198 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //  WM_DESTROY  - 종료 메시지를 게시하고 반환합니다.
 //
 //
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HDC hdc;
-    PAINTSTRUCT ps;
-    static TCHAR str[100];
-    static TCHAR* chat[10];
-    static int count, yPos, chatcount;
-    static SIZE size;
-    RECT rt = { 100, 100, 1000, 1000 };
+	HDC hdc;
+	PAINTSTRUCT ps;
+	
+	POINT cur_point; // 커서 위치
+	POINT direction; // 벡터의 각도
+	LONG speed;
 
-    switch (message)
-    {
-    case WM_CREATE: // 생성자처럼 초기값이 설정된다
-    {
-        count = 0;
-        chatcount = 0;
-        yPos = 300;
-        for (int i = 0; i < 10; i++)
-        {
-            chat[i] = new TCHAR[100]{ 0 };
-        }
+	CCircle shapes(cur_point, direction, 1, 1);
 
-        CreateCaret(hWnd, NULL, 5, 15);
-        ShowCaret(hWnd);
+	static BOOL create;
 
-        break;
-    }
-    case WM_KEYDOWN:
-    {
-        int breakpoint = 999;
-        break;
-    }
+	switch (message)
+	{
+	case WM_CREATE: // 생성자처럼 초기값이 설정된다
+	{
+		create = false;
+		break;
+	}
+	case WM_LBUTTONDOWN:
+	{
+		create = true;
+		InvalidateRgn(hWnd, NULL, TRUE);
+		break;
+	}
+	case WM_LBUTTONUP:
+	{
+		create = false;
+		InvalidateRgn(hWnd, NULL, TRUE);
+		break;
+	}
+	case WM_MOUSEMOVE:
+	{
+		break;
+	}
+	case WM_TIMER:
+	{
+		break;
+	}
+	case WM_KEYDOWN:
+	{
+		break;
+	}
     case WM_KEYUP:
-    {
-        int breakpoint = 999;
-        break;
-    }
-    case WM_CHAR:
-    {
-        int breakpoint = 999;
-        hdc = GetDC(hWnd);
+	{
+		break;
+	}
+	case WM_CHAR:
+	{
+		hdc = GetDC(hWnd);
+		InvalidateRgn(hWnd, NULL, TRUE);
+		ReleaseDC(hWnd, hdc);
+		break;
+	}
+	case WM_COMMAND:
+	{
+		int wmId = LOWORD(wParam);
+		// 메뉴 선택을 구문 분석합니다:
+		switch (wmId)
+		{
+		case IDM_ABOUT:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			break;
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+		break;
+	}
+	case WM_PAINT:
+	{
+		HDC hdc = BeginPaint(hWnd, &ps);
+		// TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
 
-        if (wParam == VK_BACK && count > 0)
-        {
-            count--;
-        }
-        else if (wParam == VK_RETURN)
-        {
-            if (chatcount == 10)
-            {
-                chatcount--;
-            }
-            else if (chatcount != 0)
-            {
-                int i = 0;
-                for (int j = chatcount; j > 1; j--)
-                {
-                    delete[] chat[j];
-                    chat[j] = new TCHAR[100]{ 0 };
-                    while (1)
-                    {
-                        if (chat[j - 1][i] == '\0')
-                        {
-                            chat[j][i] = chat[j - 1][i];
-                            break;
-                        }
-                        else
-                        {
-                            chat[j][i] = chat[j - 1][i];
-                        }
-                        i++;
-                    }
-                }
-            }
-            int i = 0;
-            while (1)
-            {
-                if (str[i] == '\0')
-                {
-                    chat[0][i] = str[i];
-                    break;
-                }
-                else
-                {
-                    chat[0][i] = str[i];
-                }
-                i++;
-            }
-            count = 0;
-            chatcount++;
-        }
-        else
-        {
-            str[count++] = wParam;
-        }
-        str[count] = NULL;
-        InvalidateRgn(hWnd, NULL, TRUE);
+		
 
-        ReleaseDC(hWnd, hdc);
-        break;
-    }
-    case WM_COMMAND:
-        {
-            int wmId = LOWORD(wParam);
-            // 메뉴 선택을 구문 분석합니다:
-            switch (wmId)
-            {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
-                break;
-            default:
-                return DefWindowProc(hWnd, message, wParam, lParam);
-            }
-        }
-        break;
-    case WM_PAINT:
-        {
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
-
-            GetTextExtentPoint(hdc, str, _tcslen(str), &size);
-
-            TextOut(hdc, 100, yPos, str, _tcslen(str));
-            int j = 0;
-            for (int i = 0; i < chatcount; i++)
-            {
-                TextOut(hdc, 100, yPos - 40 - i*20, chat[j], _tcslen(chat[j]));
-                j++;
-            }
-           
-            SetCaretPos(100 + size.cx, 0 + yPos);
-
-            // 여기까지 그리기
-            EndPaint(hWnd, &ps);
-        }
-        break;
-    case WM_DESTROY:
-        HideCaret(hWnd);
-        DestroyCaret();
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
-    }
-    return 0;
+		// 여기까지 그리기
+		EndPaint(hWnd, &ps);
+	}
+	break;
+	case WM_DESTROY:
+		HideCaret(hWnd);
+		DestroyCaret();
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+}
+return 0;
 }
 
 // 정보 대화 상자의 메시지 처리기입니다.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    UNREFERENCED_PARAMETER(lParam);
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
 
-    case WM_COMMAND:
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+		{
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+void DrawGrid(HDC hdc, POINT start, POINT end, LONG number)
+{
+	LONG devide_x = (end.x - start.x) / number;
+	LONG devide_y = (end.y - start.y) / number;
+	for (int i = start.x; i <= end.x; i += devide_x)
+	{
+		MoveToEx(hdc, i, start.y, NULL);
+		LineTo(hdc, i, end.y);
+	}
+	for (int i = start.y; i <= end.y; i += devide_y)
+	{
+		MoveToEx(hdc, start.x, i, NULL);
+		LineTo(hdc, end.x, i);
+	}
+}
+
+void DrawCircle(HDC hdc, POINT point, LONG radius)
+{
+	POINT a = { point.x - radius, point.y - radius };
+	POINT b = { point.x + radius, point.y + radius };
+	Ellipse(hdc, a.x, a.y, b.x, b.y);
+}
+
+bool DrawSunFlower(HDC hdc, POINT point, LONG radius, LONG number)
+{
+	if (number < 3)
+	{
+		return false;
+	}
+	double angle = 2.0 / (double)number * PI;
+	LONG s_radius = (radius * sin(angle / 2)) / (1 - sin(angle / 2));
+
+	POINT temp = { point.x, point.y };
+	temp.x = point.x + (radius + s_radius) * (cos(0));
+	temp.y = point.y + (radius + s_radius) * (sin(0));
+	DrawCircle(hdc, temp, s_radius);
+	for (int i = 0; i < number; i++)
+	{
+		angle += angle;
+		temp.x = point.x + (radius + s_radius) * (cos(angle));
+		temp.y = point.y + (radius + s_radius) * (sin(angle));
+		DrawCircle(hdc, temp, s_radius);
+	}
+}
+
+void DrawStar(HDC hdc, POINT point, LONG radius)
+{
+	double angle = 2.0 * PI / (double)10;
+
+	POINT temp[10];
+
+	double temp_angle = 0;
+	for (int i = 0; i < 10; i++)
+	{
+		if (i % 2 == 1)
+		{
+			temp[i].x = point.x + (sin(temp_angle) * radius / 2);
+			temp[i].y = point.y + (cos(temp_angle) * radius / 2);
+		}
+		else
+		{
+			temp[i].x = point.x + (sin(temp_angle) * radius);
+			temp[i].y = point.y + (cos(temp_angle) * radius);
+		}
+		temp_angle += angle;
+	}
+	Polygon(hdc, temp, 10);
+}
+
+double LengthPts(POINT pt1, POINT pt2)
+{
+	return (sqrt((float)(pt2.x - pt1.x) * (pt2.x - pt1.x) +
+		(float)(pt2.y - pt1.y) * (pt2.y - pt1.y)));
+}
+
+BOOL InCircle(POINT pt1, POINT pt2)
+{
+	if (LengthPts(pt1, pt2) < circleRadius) return TRUE;
+	return FALSE;
 }
