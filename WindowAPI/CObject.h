@@ -4,22 +4,31 @@
 
 enum Type
 {
-	Circle, Rectangle, Star
+	Circle, Rect, Star
+};
+
+struct fPOINT
+{
+	float x;
+	float y;
 };
 
 class CObject
 {
 protected:
 	POINT point;
-	POINT direction;
+	fPOINT direction;
+	float angle[2];
 	LONG speed;
-	LONG Type;
+	LONG type;
 public:
-	CObject(POINT point, POINT direction, LONG speed, LONG type = Circle);
+	CObject(POINT point, LONG type = Circle);
 	~CObject();
-	virtual void Update() = 0;
-	virtual void Draw() = 0;
+	virtual void Update(RECT rectView) = 0;
+	virtual void Draw(HDC hdc) = 0;
 	virtual BOOL Collision() = 0;
+	float Random(float min, float max);
+	LONG PrintInfo();
 };
 
 class CCircle : public CObject
@@ -27,35 +36,45 @@ class CCircle : public CObject
 private :
 	LONG radius;
 public :
-	CCircle(POINT point, POINT direction, LONG speed, LONG type, LONG radius)
-		: CObject(point, direction, speed, type = Circle) {}
+	CCircle(POINT point)
+		: CObject(point, type = Circle) { radius = 40; }
 	~CCircle();
-	virtual void Update() override;
-	virtual void Draw() override;
+	virtual void Update(RECT rectView) override;
+	virtual void Draw(HDC hdc) override;
 	virtual BOOL Collision() override;
 };
 
 class CRect : public CObject
 {
 private :
+	POINT pt[4];
 	LONG width;
 	LONG height;
 public:
-	CRect(POINT point, POINT direction, LONG speed, LONG type, LONG radius)
-		: CObject(point, direction, speed, type = Rectangle) {}
+	CRect(POINT point)
+		: CObject(point, type = Rect) {
+		width = 40;
+		height = 40;
+		pt[0] = { point.x - width, point.y - height };
+		pt[1] = { point.x - width, point.y + height };
+		pt[2] = { point.x + width, point.y + height };
+		pt[3] = { point.x + width, point.y - height };
+	}
 	~CRect();
-	void Update() override;
-	void Draw() override;
-	BOOL Collision() override;
+	virtual void Update(RECT rectView) override;
+	virtual void Draw(HDC hdc) override;
+	virtual BOOL Collision() override;
 };
 
-class CStar : public CCircle
+class CStar : public CObject
 {
+private:
+	LONG radius;
 public :
-	CStar(POINT point, POINT direction, LONG speed, LONG type, LONG radius)
-		: CCircle(point, direction, speed, type = Star, radius) {}
+	CStar(POINT point)
+		: CObject(point, type = Circle) { radius = 40; }
 	~CStar();
-	void Update() override;
-	void Draw() override;
-	BOOL Collision() override;
+	virtual void Update(RECT rectView) override;
+	virtual void Draw(HDC hdc) override;
+	virtual BOOL Collision() override;
 };

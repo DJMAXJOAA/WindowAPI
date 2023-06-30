@@ -15,3 +15,8 @@
 #include <tchar.h>
 #include <iostream>
 #include <cmath>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
+#include <random>
+#include <math.h>

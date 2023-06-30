@@ -127,33 +127,55 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+#define LIST_SIZE 100
 	HDC hdc;
 	PAINTSTRUCT ps;
-	
-	POINT cur_point; // 커서 위치
-	POINT direction; // 벡터의 각도
-	LONG speed;
+	char temp[100] = {};
+	POINT cur_point;
+	static vector<CObject*> shapes_list;
 
-	CCircle shapes(cur_point, direction, 1, 1);
+	static int list_number = 0;
+	static RECT rectView;
 
-	static BOOL create;
+	static int state;
 
 	switch (message)
 	{
 	case WM_CREATE: // 생성자처럼 초기값이 설정된다
 	{
-		create = false;
+		state = 1;
+		GetClientRect(hWnd, &rectView);
+		SetTimer(hWnd, 1, 20, NULL);
 		break;
 	}
 	case WM_LBUTTONDOWN:
 	{
-		create = true;
+		cur_point.x = LOWORD(lParam);
+		cur_point.y = HIWORD(lParam);
+		
+		if (list_number < LIST_SIZE)
+		{
+			CObject* temp;
+			switch (state)
+			{
+			case 1:
+				temp = new CCircle(cur_point);
+				break;
+			case 2:
+				temp = new CRect(cur_point);
+				break;
+			case 3:
+				temp = new CStar(cur_point);
+				break;
+			}
+			shapes_list.push_back(temp);
+			list_number++;
+		}
 		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
 	case WM_LBUTTONUP:
 	{
-		create = false;
 		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
@@ -163,10 +185,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_TIMER:
 	{
+		for (int i = 0; i < list_number; i++)
+		{
+			shapes_list[i]->Update(rectView);
+		}
+		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
 	case WM_KEYDOWN:
 	{
+		if (wParam == 0x31)
+			state = 1;
+		if (wParam == 0x32)
+			state = 2;
+		if (wParam == 0x33)
+			state = 3;
+		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
     case WM_KEYUP:
@@ -202,7 +236,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		HDC hdc = BeginPaint(hWnd, &ps);
 		// TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
 
-		
+		for (int i = 0; i < list_number; i++)
+		{
+			shapes_list[i]->Draw(hdc);
+			sprintf(temp, "%d", shapes_list[i]->PrintInfo());
+			TextOut(hdc, 300, 300, (TCHAR)temp, wcslen((TCHAR)temp);
+		}
 
 		// 여기까지 그리기
 		EndPaint(hWnd, &ps);
@@ -312,10 +351,4 @@ double LengthPts(POINT pt1, POINT pt2)
 {
 	return (sqrt((float)(pt2.x - pt1.x) * (pt2.x - pt1.x) +
 		(float)(pt2.y - pt1.y) * (pt2.y - pt1.y)));
-}
-
-BOOL InCircle(POINT pt1, POINT pt2)
-{
-	if (LengthPts(pt1, pt2) < circleRadius) return TRUE;
-	return FALSE;
 }
