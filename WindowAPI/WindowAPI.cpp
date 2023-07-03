@@ -79,7 +79,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINDOWAPI));
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_WINDOWAPI);
+	wcex.lpszMenuName = MAKEINTRESOURCEW(IDR_MENU1);
 	wcex.lpszClassName = szWindowClass;
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -139,11 +139,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	static int state;
 
+	OPENFILENAME ofn;
+	TCHAR filter[] = _T("Every File(*.*)\0*.*\0Text file\0*.txt;*.doc\0");
+	TCHAR lpstrFile[100] = _T("");
+
 	switch (message)
 	{
 	case WM_CREATE: // 생성자처럼 초기값이 설정된다
 	{
 		state = 1;
+		ofn.lpstrFile = lpstrFile;
 		GetClientRect(hWnd, &rectView);
 		SetTimer(hWnd, 1, 20, NULL);
 		break;
@@ -186,7 +191,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_TIMER:
 	{
 		for (int i = 0; i < list_number; i++)
-		{
+		{		
+			for (int j = 0; j < list_number; j++)
+			{
+				if (j == i)
+					continue;
+				if (shapes_list[i]->Collision(*shapes_list[j]) == TRUE && !shapes_list[i]->isitCollide())
+				{
+					break;
+				}
+			}
 			shapes_list[i]->Update(rectView);
 		}
 		InvalidateRgn(hWnd, NULL, TRUE);
@@ -217,9 +231,57 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 	{
 		int wmId = LOWORD(wParam);
+
+		int itemp = state;
+		int answ = 0;
 		// 메뉴 선택을 구문 분석합니다:
 		switch (wmId)
 		{
+		case ID_DRAW_CIRCLE:
+		{
+			answ = MessageBox(hWnd, _T("원"), _T("도형 선택"), MB_YESNOCANCEL);
+			if (answ == IDYES)
+			{
+				state = 1;
+			}
+			else if (answ == IDNO)
+			{
+
+			}
+			else
+			{
+
+			}
+			InvalidateRgn(hWnd, NULL, TRUE);
+			break;
+		}
+		case ID_DRAW_RECT:
+			state = 2;
+			InvalidateRgn(hWnd, NULL, TRUE);
+			break;
+		case ID_DRAW_STAR:
+			state = 3;
+			break;
+		case ID_FILEOPEN:
+			{
+			memset(&ofn, 0, sizeof(OPENFILENAME));
+			ofn.lStructSize = sizeof(OPENFILENAME);
+			ofn.hwndOwner = hWnd; // 부모 윈도우 -> 파일 오픈 창이 닫혔을때 어디로 가는지
+			ofn.lpstrFilter = filter;
+			ofn.lpstrFile = lpstrFile; //  선택 ㅏㅍ일 어디로? 저장
+			ofn.nMaxFile = 100; // 총 몇개의 파일
+			ofn.lpstrInitialDir = _T("."); // 현재 디렉토리
+			if (GetOpenFileName(&ofn) != 0)
+			{
+				TCHAR str[100];
+				_stprintf_s(str, _T("%s 파일을 열겠습니까?"), ofn.lpstrFile);
+				MessageBox(hWnd, str, _T("파일 선택"), MB_OK); // 무조건 선택
+				OutFromFile(ofn.lpstrFile, hWnd);
+				MessageBox(hWnd, lpstrFile, ofn.lpstrFile, MB_OK);
+			}
+
+			break;
+		}
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
@@ -239,8 +301,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		for (int i = 0; i < list_number; i++)
 		{
 			shapes_list[i]->Draw(hdc);
-			sprintf(temp, "%d", shapes_list[i]->PrintInfo());
-			TextOut(hdc, 300, 300, (TCHAR)temp, wcslen((TCHAR)temp);
 		}
 
 		// 여기까지 그리기
@@ -351,4 +411,28 @@ double LengthPts(POINT pt1, POINT pt2)
 {
 	return (sqrt((float)(pt2.x - pt1.x) * (pt2.x - pt1.x) +
 		(float)(pt2.y - pt1.y) * (pt2.y - pt1.y)));
+}
+
+void OutFromFile(TCHAR filename[], HWND hWnd)
+{
+	FILE* fptr;
+	HDC hdc;
+	int line;
+	TCHAR buffer[500];
+	line = 0;
+	hdc = GetDC(hWnd);
+#ifdef _UNICODE
+	_tfopen_s(&fptr, filename, _T("r, ccs = UNICODE"));
+#else
+	_tfopen_s(&fptr, filename, _T("r"));
+#endif
+	while (_fgetts(buffer, 100, fptr) != NULL)
+	{
+		if (buffer[_tcslen(buffer) - 1] == _T('\n'))
+			buffer[_tcslen(buffer) - 1] = NULL;
+		TextOut(hdc, 0, line * 20, buffer, _tcslen(buffer)); // 여기서 출력
+		line++;
+	}
+	fclose(fptr);
+	ReleaseDC(hWnd, hdc);
 }
