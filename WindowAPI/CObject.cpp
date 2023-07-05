@@ -13,16 +13,21 @@ CObject::CObject(POINT point, LONG type)
     this->type = type;
     this->radius = 40;
     this->iscollide = false;
+    this->selection = false;
+    this->deleted = false;
+    this->devided = false;
 }
 
 CObject::~CObject()
 {
+
 }
 
-BOOL CObject::Collision(CObject& v2)
+BOOL CObject::Collision(CObject& v2, RECT rectview)
 {
-    if (sqrt(pow((v2.getX() - this->point.x) , 2)
-        + pow((v2.getY() - this->point.y), 2)) < (this->radius+this->speed) + (v2.getRadius() + v2.getSpeed()))
+    if (sqrt(pow((v2.getX() - this->point.x), 2)
+        + pow((v2.getY() - this->point.y), 2)) <
+        (this->radius) + (v2.getRadius()))
     {
         fPOINT temp = { this->direction.x, this->direction.y };
         this->direction.x = v2.direction.x;
@@ -32,12 +37,21 @@ BOOL CObject::Collision(CObject& v2)
         v2.direction.y = temp.y;
         this->angle[1] *= -1;
         v2.angle[1] *= -1;
-
-        this->iscollide = true;
-        v2.setCollide();
+        
+        while (1)
+        {
+            if (sqrt(pow((v2.getX() - this->point.x), 2)
+                + pow((v2.getY() - this->point.y), 2)) >
+                (this->radius) + (v2.getRadius()))
+                break;
+            this->Update(rectview);
+            v2.Update(rectview);
+        }
 
         return TRUE;
     }
+
+    return FALSE;
 }
 
 float CObject::Random(float min, float max)
@@ -60,6 +74,14 @@ LONG CObject::PrintInfo()
     return (LONG)angle;
 }
 
+BOOL CObject::InObject(int mx, int my)
+{
+    double length_pts = sqrt((float)(pow(mx - point.x, 2) + pow(my - point.y, 2)));
+
+    if (length_pts < this->radius) return TRUE;
+    else FALSE;
+}
+
 
 CCircle::~CCircle()
 {
@@ -75,6 +97,9 @@ CRect::~CRect()
 
 void CCircle::Update(RECT rectView)
 {
+    if (selection == TRUE)
+        return;
+
     if (this->point.x + 10 + this->direction.x * this->speed > rectView.right)
     {
         this->direction.x *= -1;
@@ -109,6 +134,9 @@ void CCircle::Draw(HDC hdc)
 
 void CRect::Update(RECT rectView)
 {
+    if (selection == TRUE)
+        return;
+
     if (this->point.x + 10 + this->direction.x * this->speed > rectView.right)
     {
         this->direction.x *= -1.0;
@@ -137,6 +165,11 @@ void CRect::Draw(HDC hdc)
 {
     float angle2 = angle[1] * PI / 180;
 
+    pt[0] = { -radius, -radius };
+    pt[1] = { -radius, +radius };
+    pt[2] = { +radius, +radius };
+    pt[3] = { +radius, -radius };
+
     {
         POINT pt0 = { pt[0].x * cosf(angle2) - pt[0].y * sinf(angle2), pt[0].x * sinf(angle2) + pt[0].y * cosf(angle2) };
         POINT pt1 = { pt[1].x * cosf(angle2) - pt[1].y * sinf(angle2), pt[1].x * sinf(angle2) + pt[1].y * cosf(angle2) };
@@ -149,6 +182,8 @@ void CRect::Draw(HDC hdc)
         Polygon(hdc, temp, 4);
     }
 
+    if (selection == TRUE)
+        return;
 
     if(angle[1] + angle[0] <= 360.0)
         angle[1] += angle[0];
@@ -164,6 +199,9 @@ CStar::~CStar()
 
 void CStar::Update(RECT rectView)
 {
+    if (selection == TRUE)
+        return;
+
     if (this->point.x + 10 + this->direction.x * this->speed > rectView.right)
     {
         this->direction.x *= -1.0;
@@ -193,6 +231,24 @@ void CStar::Draw(HDC hdc)
     float angle2 = angle[1] * PI / 180;
 
     POINT temp_star[10];
+
+    double t_angle = 2.0 * PI / (double)10;
+    double temp_angle = 0;
+    for (int i = 0; i < 10; i++)
+    {
+        if (i % 2 == 1)
+        {
+            pt[i].x = (sin(temp_angle) * radius / 2);
+            pt[i].y = (cos(temp_angle) * radius / 2);
+        }
+        else
+        {
+            pt[i].x = (sin(temp_angle) * radius);
+            pt[i].y = (cos(temp_angle) * radius);
+        }
+        temp_angle += t_angle;
+    }
+
     for (int i = 0; i < 10; i++)
     {
         temp_star[i].x = pt[i].x * cosf(angle2) - pt[i].y * sinf(angle2) + point.x,
@@ -200,6 +256,9 @@ void CStar::Draw(HDC hdc)
     }
 
     Polygon(hdc, temp_star, 10);
+
+    if (selection == TRUE)
+        return;
 
     if (angle[1] + angle[0] <= 360.0)
         angle[1] += angle[0];
@@ -242,6 +301,75 @@ LONG CObject::getRadius()
 void CObject::setCollide()
 {
     iscollide = true;
+}
+
+void CObject::setCollideFalse()
+{
+    iscollide = false;
+}
+
+BOOL CObject::isifSelect()
+{
+    return selection;
+}
+
+void CObject::setSelection()
+{
+    if (selection == false)
+        selection = true;
+    else if (selection == true)
+        selection = false;
+}
+
+LONG CObject::getType()
+{
+    return type;
+}
+
+LONG CObject::getCompatibility()
+{
+    switch (this->type)
+    {
+    case Circle:
+            return Rect;
+        break;
+    case Rect:
+            return Star;
+        break;
+    case Star:
+            return Circle;
+        break;
+    }
+}
+
+void CObject::setRadius(LONG r)
+{
+    radius = r;
+}
+
+void CObject::setDeleted()
+{
+    deleted = true;
+}
+
+BOOL CObject::isitDeleted()
+{
+    return deleted;
+}
+
+void CObject::setDevide()
+{
+    devided = true;
+}
+
+void CObject::setDevideFalse()
+{
+    devided = false;
+}
+
+BOOL CObject::isitDevide()
+{
+    return devided;
 }
 
 BOOL CObject::isitCollide()

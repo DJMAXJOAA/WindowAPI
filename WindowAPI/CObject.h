@@ -5,6 +5,7 @@
 enum Type
 {
 	Circle, Rect, Star
+	// 별 > 원 > 사각형 > 별
 };
 
 struct fPOINT
@@ -23,14 +24,18 @@ protected:
 	LONG type;
 	LONG radius;
 	BOOL iscollide;
+	BOOL selection;
+	BOOL deleted;
+	BOOL devided;
 public:
-	CObject(POINT point, LONG type = Circle);
+	CObject(POINT point, LONG type);
 	~CObject();
 	virtual void Update(RECT rectView) = 0;
 	virtual void Draw(HDC hdc) = 0;
 	float Random(float min, float max);
-	BOOL Collision(CObject& v2);
+	BOOL Collision(CObject& v2, RECT rectview);
 	LONG PrintInfo();
+	BOOL InObject(int mx, int my);
 
 	double GetAngle(CObject &v2);
 	LONG getX();
@@ -39,13 +44,27 @@ public:
 	LONG getRadius();
 	BOOL isitCollide();
 	void setCollide();
+	void setCollideFalse();
+	BOOL isifSelect();
+	void setSelection();
+	LONG getType();
+	LONG getCompatibility();
+	void setRadius(LONG r);
+	void setDeleted();
+	BOOL isitDeleted();
+	void setDevide();
+	void setDevideFalse();
+	BOOL isitDevide();
 };
 
 class CCircle : public CObject
 {
 public :
 	CCircle(POINT point)
-		: CObject(point, type = Circle) { radius = 40; }
+		: CObject(point, type = Circle) {
+		type = Circle;
+		radius = 40;
+	}
 	~CCircle();
 	virtual void Update(RECT rectView) override;
 	virtual void Draw(HDC hdc) override;
@@ -59,12 +78,12 @@ private :
 public:
 	CRect(POINT point)
 		: CObject(point, type = Rect) {
+		type = Rect;
 		height = radius;
-		radius = radius * sqrt(2);
-		pt[0] = { -height, -height };
-		pt[1] = { -height, +height };
-		pt[2] = { +height, +height };
-		pt[3] = { +height, -height };
+		pt[0] = { -radius, -radius };
+		pt[1] = { -radius, +radius };
+		pt[2] = { +radius, +radius };
+		pt[3] = { +radius, -radius };
 	}
 	~CRect();
 	virtual void Update(RECT rectView) override;
@@ -80,6 +99,7 @@ public :
 	CStar(POINT point)
 		: CObject(point, type = Circle) { 
 		radius = 40; 
+		type = Star;
 
 		double t_angle = 2.0 * PI / (double)10;
 		double temp_angle = 0;

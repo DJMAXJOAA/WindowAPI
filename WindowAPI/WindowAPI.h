@@ -9,3 +9,6 @@ bool DrawSunFlower(HDC hdc, POINT point, LONG radius, LONG number);
 double LengthPts(POINT pt1, POINT pt2);
 void OutFromFile(TCHAR filename[], HWND hWnd);
 
+void CreateBitmap();
+void DrawBitmap(HWND hWnd, HDC hdc);
+void DeleteBitmap();

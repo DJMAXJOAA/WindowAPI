@@ -4,6 +4,14 @@
 #include "framework.h"
 #include "WindowAPI.h"
 
+#pragma comment(lib, "msimg32.lib") // 이미지
+HBITMAP hBackImage;
+HBITMAP hTransparentImage;
+BITMAP bitBack;
+BITMAP bitBackTransparent;
+
+
+
 #define MAX_LOADSTRING 100
 
 using namespace std;
@@ -133,6 +141,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	char temp[100] = {};
 	POINT cur_point;
 	static vector<CObject*> shapes_list;
+	static vector<CObject*> copy_list;
 
 	static int list_number = 0;
 	static RECT rectView;
@@ -143,6 +152,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	TCHAR filter[] = _T("Every File(*.*)\0*.*\0Text file\0*.txt;*.doc\0");
 	TCHAR lpstrFile[100] = _T("");
 
+	static HMENU hMenu, hSubMenu;
+	HBRUSH hBrush, oldBrush;
+
 	switch (message)
 	{
 	case WM_CREATE: // 생성자처럼 초기값이 설정된다
@@ -151,17 +163,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		ofn.lpstrFile = lpstrFile;
 		GetClientRect(hWnd, &rectView);
 		SetTimer(hWnd, 1, 20, NULL);
+
+		hMenu = GetMenu(hWnd);
+		hSubMenu = GetSubMenu(hMenu, 3);
+		EnableMenuItem(hSubMenu, ID_EDITCOPY, MF_GRAYED);
+		EnableMenuItem(hSubMenu, ID_EDITPASTE, MF_GRAYED);
+
+		CreateBitmap(); // 이미지 초기 설정
+
+		break;
+	}
+	case WM_RBUTTONDOWN:
+	{
+		cur_point.x = LOWORD(lParam);
+		cur_point.y = HIWORD(lParam);
+		for (int i = 0; i < list_number; i++)
+		{
+			if (shapes_list[i]->InObject(cur_point.x, cur_point.y) == TRUE)
+			{
+				shapes_list[i]->setSelection();
+				break;
+			}
+		}
+		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
 	case WM_LBUTTONDOWN:
 	{
 		cur_point.x = LOWORD(lParam);
 		cur_point.y = HIWORD(lParam);
-		
+
 		if (list_number < LIST_SIZE)
 		{
 			CObject* temp;
-			switch (state)
+
+			random_device rand;
+			mt19937_64 random(rand());
+			uniform_int_distribution<int> dist1(1, 3);
+			int random_draw = dist1(random);
+
+			switch (random_draw)
 			{
 			case 1:
 				temp = new CCircle(cur_point);
@@ -186,23 +227,172 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_MOUSEMOVE:
 	{
+		
 		break;
 	}
 	case WM_TIMER:
 	{
-		for (int i = 0; i < list_number; i++)
-		{		
-			for (int j = 0; j < list_number; j++)
+		switch (state)
+		{
+		case 1: // 반사
+		{
+		for (int i = 0; i < shapes_list.size(); i++)
+		{
+			for (int j = 0; j < shapes_list.size(); j++)
 			{
 				if (j == i)
 					continue;
-				if (shapes_list[i]->Collision(*shapes_list[j]) == TRUE && !shapes_list[i]->isitCollide())
+				if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
 				{
+					shapes_list[i]->setCollide();
+					shapes_list[j]->setCollide();
+					shapes_list[i]->Update(rectView);
+					shapes_list[j]->Update(rectView);
 					break;
 				}
 			}
 			shapes_list[i]->Update(rectView);
 		}
+		break;
+		}
+		case 2: // 합체
+		{
+			for (int i = 0; i < shapes_list.size(); i++)
+			{
+				for (int j = 0; j < shapes_list.size(); j++)
+				{
+					if (j == i || shapes_list[j]->isitDeleted() == TRUE)
+						continue;
+
+					/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
+					if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
+					{
+						if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
+						{
+							if (shapes_list[i]->getRadius() > 160)
+							{
+								shapes_list[i]->setDeleted();
+								shapes_list[j]->setDeleted();
+								break;
+							}
+							CObject* temp = nullptr;
+							POINT ptemp = { shapes_list[i]->getX(), shapes_list[i]->getY() };
+							switch (shapes_list[i]->getType())
+							{
+							case Circle:
+								temp = new CCircle(ptemp);
+								break;
+							case Rect:
+								temp = new CRect(ptemp);
+								break;
+							case Star:
+								temp = new CStar(ptemp);
+								break;
+							}
+							temp->setRadius(shapes_list[i]->getRadius() + shapes_list[j]->getRadius() / 2);
+							temp->setCollide();
+							shapes_list[j]->setRadius(0);
+
+							delete shapes_list[i];
+							shapes_list[j]->setDeleted();
+
+							shapes_list[i] = temp;
+						}
+						else
+						{
+							shapes_list[i]->Update(rectView);
+							shapes_list[j]->Update(rectView);
+						}
+						break;
+					}
+				}
+				shapes_list[i]->Update(rectView);
+			}
+			vector<CObject*> temp_list;
+			for (int i = 0; i < shapes_list.size(); i++)
+			{
+				if (shapes_list[i]->isitDeleted() == TRUE)
+					delete shapes_list[i];
+				else
+					temp_list.push_back(shapes_list[i]);
+			}
+			shapes_list = temp_list;
+			list_number = shapes_list.size();
+			
+
+			break;
+		}
+		case 3: // 분열
+		{
+			for (int i = 0; i < list_number; i++)
+			{
+				for (int j = 0; j < list_number; j++)
+				{
+					if (j == i || shapes_list[j]->isitDeleted() == TRUE || shapes_list[j]->isitDevide() == TRUE)
+						continue;
+
+					/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
+					if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
+					{
+						if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
+						{
+							if (shapes_list[i]->getRadius() <= 10)
+							{
+								shapes_list[i]->setDeleted();
+								break;
+							}
+
+							for (int k = 0; k < 2; k++)
+							{
+								CObject* temp = nullptr;
+								POINT ptemp = { shapes_list[i]->getX() + 20*k, shapes_list[i]->getY() + 20*k };
+								switch (shapes_list[i]->getType())
+								{
+								case Circle:
+									temp = new CCircle(ptemp);
+									break;
+								case Rect:
+									temp = new CRect(ptemp);
+									break;
+								case Star:
+									temp = new CStar(ptemp);
+									break;
+								}
+								temp->setRadius(shapes_list[i]->getRadius() / 3 + shapes_list[j]->getRadius() / 3);
+								temp->setCollide();
+								temp->setDevide();
+
+								shapes_list.push_back(temp);
+							}
+
+							shapes_list[i]->setDeleted();
+						}
+						else
+						{
+							shapes_list[i]->Update(rectView);
+							shapes_list[j]->Update(rectView);
+						}
+						break;
+					}
+				}
+				shapes_list[i]->Update(rectView);
+			}
+			vector<CObject*> temp_list;
+			for (int i = 0; i < shapes_list.size(); i++)
+			{
+				if (shapes_list[i]->isitDeleted() == TRUE)
+					delete shapes_list[i];
+				else
+					temp_list.push_back(shapes_list[i]);
+			}
+			shapes_list = temp_list;
+			list_number = shapes_list.size();
+
+			break;
+		}
+		}
+
+		
 		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
@@ -214,6 +404,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			state = 2;
 		if (wParam == 0x33)
 			state = 3;
+
+		if (wParam == 'C' || wParam == 'c')
+		{
+			UINT state = GetMenuState(hSubMenu, ID_EDITCOPY, MF_BYCOMMAND);
+			if ((state & MF_DISABLED) || (state & MF_GRAYED))
+				EnableMenuItem(hSubMenu, ID_EDITCOPY, MF_ENABLED);
+			else if(state == MF_ENABLED)
+				EnableMenuItem(hSubMenu, ID_EDITCOPY, MF_GRAYED);
+		}
 		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
@@ -296,14 +495,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 	{
 		HDC hdc = BeginPaint(hWnd, &ps);
+		hBrush = CreateSolidBrush(RGB(255, 0, 0));
+		oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
 		// TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
 
-		for (int i = 0; i < list_number; i++)
+		//DrawBitmap(hWnd, hdc); // 비트맵 그리기 함수
+
+		for (int i = 0; i < shapes_list.size(); i++)
 		{
+			if (!shapes_list[i]->isifSelect())
+				SelectObject(hdc, oldBrush);
+			else
+				SelectObject(hdc, hBrush);
 			shapes_list[i]->Draw(hdc);
+			shapes_list[i]->setCollideFalse();
+			shapes_list[i]->setDevideFalse();
 		}
 
+
+
 		// 여기까지 그리기
+		DeleteObject(hBrush);
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -311,6 +523,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		HideCaret(hWnd);
 		DestroyCaret();
 		PostQuitMessage(0);
+
+		DeleteBitmap();
+
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
@@ -435,4 +650,66 @@ void OutFromFile(TCHAR filename[], HWND hWnd)
 	}
 	fclose(fptr);
 	ReleaseDC(hWnd, hdc);
+}
+
+void CreateBitmap()
+{
+	hBackImage = (HBITMAP)LoadImage(NULL, TEXT("images/수지.bmp"), 
+		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION); // 이미지, 좌표, 옵션들 설정
+	if (hBackImage == NULL)
+	{
+		DWORD dwError = GetLastError();
+		MessageBox(NULL, _T("이미지 로드 에러"), _T("에러"), MB_OK);
+	}
+	GetObject(hBackImage, sizeof(BITMAP), &bitBack); // 저장을 어디에 하는지?
+
+	hTransparentImage = (HBITMAP)LoadImage(NULL, TEXT("images/sigong.bmp"),
+		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE); // 이미지, 좌표, 옵션들 설정
+	if (hTransparentImage == NULL)
+	{
+		DWORD dwError = GetLastError();
+		MessageBox(NULL, _T("이미지 로드 에러"), _T("에러"), MB_OK);
+	}
+	GetObject(hTransparentImage, sizeof(BITMAP), &bitBackTransparent); // 저장을 어디에 하는지?
+
+}
+
+void DrawBitmap(HWND hWnd, HDC hdc)
+{
+	HDC hMemDC;
+	HBITMAP hOldBitmap;
+	int bx, by;
+	
+	{
+		/* 계속 그려줄 그림이라면, SelectObject 설정만 하고 리셋+반환을 안해도 된다 */
+		hMemDC = CreateCompatibleDC(hdc); // 화면에 맞게 출력 설정 (hdc가 모니터의 설정을 가지고 잇음)
+		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBackImage); // hOldBitmap 형변환하여 값 대입은 안해도 되긴 한다(사용 안할거면)
+		bx = bitBack.bmWidth;
+		by = bitBack.bmHeight;
+
+		BitBlt(hdc, 0, 0, bx, by, hMemDC, 0, 0, SRCCOPY); // 그림 출력
+
+		SelectObject(hMemDC, hOldBitmap); // 원래 이미지로 다시 돌려주고(리셋)
+		DeleteDC(hMemDC);
+	}
+
+	// 시공
+	{
+		hMemDC = CreateCompatibleDC(hdc); 
+		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hTransparentImage); 
+		bx = bitBackTransparent.bmWidth;
+		by = bitBackTransparent.bmHeight;
+
+		/*BitBlt(hdc, 100, 100, bx, by, hMemDC, 0, 0, SRCCOPY); */
+		TransparentBlt(hdc, 150, 150, bx, by, hMemDC, 0, 0, bx, by, RGB(255, 0, 255));
+
+		SelectObject(hMemDC, hOldBitmap); 
+		DeleteDC(hMemDC);
+	}
+}
+
+void DeleteBitmap()
+{
+	DeleteObject(hBackImage);
+	DeleteObject(hTransparentImage);
 }
