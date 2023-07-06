@@ -4,11 +4,32 @@
 #include "framework.h"
 #include "WindowAPI.h"
 
-#pragma comment(lib, "msimg32.lib") // 이미지
+/* 이미지 */
+#pragma comment(lib, "msimg32.lib")
 HBITMAP hBackImage;
 HBITMAP hTransparentImage;
 BITMAP bitBack;
 BITMAP bitBackTransparent;
+
+/* 애니메이션 */
+HBITMAP hAniImage;
+BITMAP bitAni;
+const int SPRITE_SIZE_X = 57;
+const int SPRITE_SIZE_Y = 52; // 나중에는 이렇게 사용 ㄴㄴ
+int RUN_FRAME_MAX = 0;
+int RUN_FRAME_MIN = 0;
+int curframe = RUN_FRAME_MIN;
+int SPRITE_FRAME_COUNT_X = 0;
+int SPRITE_FRAME_COUNT_Y = 0; // 나중에 계산
+RECT rectView;
+
+/* 더블 버퍼링 */
+HBITMAP hDoubleBufferImage;
+// << : ANI
+
+// >> : text
+
+// << :
 
 
 
@@ -65,8 +86,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	return (int)msg.wParam;
 }
-
-
 
 //
 //  함수: MyRegisterClass()
@@ -133,6 +152,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //
 
+#define timer_ID_1 11
+#define timer_ID_2 123
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 #define LIST_SIZE 100
@@ -144,7 +166,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	static vector<CObject*> copy_list;
 
 	static int list_number = 0;
-	static RECT rectView;
 
 	static int state;
 
@@ -157,12 +178,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
+	case WM_SIZE:
+		GetClientRect(hWnd, &rectView);
+		break;
 	case WM_CREATE: // 생성자처럼 초기값이 설정된다
 	{
 		state = 1;
 		ofn.lpstrFile = lpstrFile;
 		GetClientRect(hWnd, &rectView);
-		SetTimer(hWnd, 1, 20, NULL);
+		/*SetTimer(hWnd, 1, 20, NULL);*/
+
+		SetTimer(hWnd, timer_ID_2, 20, AniProc); // 제로 애니메이션 설정값
 
 		hMenu = GetMenu(hWnd);
 		hSubMenu = GetSubMenu(hMenu, 3);
@@ -232,165 +258,175 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_TIMER:
 	{
-		switch (state)
+		if (wParam == timer_ID_1)
 		{
-		case 1: // 반사
+
+		}
+
+		if (wParam == timer_ID_2)
 		{
-		for (int i = 0; i < shapes_list.size(); i++)
-		{
-			for (int j = 0; j < shapes_list.size(); j++)
-			{
-				if (j == i)
-					continue;
-				if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
-				{
-					shapes_list[i]->setCollide();
-					shapes_list[j]->setCollide();
-					shapes_list[i]->Update(rectView);
-					shapes_list[j]->Update(rectView);
-					break;
-				}
-			}
-			shapes_list[i]->Update(rectView);
+			UpdateFrame(hWnd);
 		}
-		break;
-		}
-		case 2: // 합체
-		{
-			for (int i = 0; i < shapes_list.size(); i++)
-			{
-				for (int j = 0; j < shapes_list.size(); j++)
-				{
-					if (j == i || shapes_list[j]->isitDeleted() == TRUE)
-						continue;
+	//{
+	//	switch (state)
+	//	{
+	//	case 1: // 반사
+	//	{
+	//	for (int i = 0; i < shapes_list.size(); i++)
+	//	{
+	//		for (int j = 0; j < shapes_list.size(); j++)
+	//		{
+	//			if (j == i)
+	//				continue;
+	//			if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
+	//			{
+	//				shapes_list[i]->setCollide();
+	//				shapes_list[j]->setCollide();
+	//				shapes_list[i]->Update(rectView);
+	//				shapes_list[j]->Update(rectView);
+	//				break;
+	//			}
+	//		}
+	//		shapes_list[i]->Update(rectView);
+	//	}
+	//	break;
+	//	}
+	//	case 2: // 합체
+	//	{
+	//		for (int i = 0; i < shapes_list.size(); i++)
+	//		{
+	//			for (int j = 0; j < shapes_list.size(); j++)
+	//			{
+	//				if (j == i || shapes_list[j]->isitDeleted() == TRUE)
+	//					continue;
 
-					/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
-					if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
-					{
-						if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
-						{
-							if (shapes_list[i]->getRadius() > 160)
-							{
-								shapes_list[i]->setDeleted();
-								shapes_list[j]->setDeleted();
-								break;
-							}
-							CObject* temp = nullptr;
-							POINT ptemp = { shapes_list[i]->getX(), shapes_list[i]->getY() };
-							switch (shapes_list[i]->getType())
-							{
-							case Circle:
-								temp = new CCircle(ptemp);
-								break;
-							case Rect:
-								temp = new CRect(ptemp);
-								break;
-							case Star:
-								temp = new CStar(ptemp);
-								break;
-							}
-							temp->setRadius(shapes_list[i]->getRadius() + shapes_list[j]->getRadius() / 2);
-							temp->setCollide();
-							shapes_list[j]->setRadius(0);
+	//				/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
+	//				if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
+	//				{
+	//					if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
+	//					{
+	//						if (shapes_list[i]->getRadius() > 160)
+	//						{
+	//							shapes_list[i]->setDeleted();
+	//							shapes_list[j]->setDeleted();
+	//							break;
+	//						}
+	//						CObject* temp = nullptr;
+	//						POINT ptemp = { shapes_list[i]->getX(), shapes_list[i]->getY() };
+	//						switch (shapes_list[i]->getType())
+	//						{
+	//						case Circle:
+	//							temp = new CCircle(ptemp);
+	//							break;
+	//						case Rect:
+	//							temp = new CRect(ptemp);
+	//							break;
+	//						case Star:
+	//							temp = new CStar(ptemp);
+	//							break;
+	//						}
+	//						temp->setRadius(shapes_list[i]->getRadius() + shapes_list[j]->getRadius() / 2);
+	//						temp->setCollide();
+	//						shapes_list[j]->setRadius(0);
 
-							delete shapes_list[i];
-							shapes_list[j]->setDeleted();
+	//						delete shapes_list[i];
+	//						shapes_list[j]->setDeleted();
 
-							shapes_list[i] = temp;
-						}
-						else
-						{
-							shapes_list[i]->Update(rectView);
-							shapes_list[j]->Update(rectView);
-						}
-						break;
-					}
-				}
-				shapes_list[i]->Update(rectView);
-			}
-			vector<CObject*> temp_list;
-			for (int i = 0; i < shapes_list.size(); i++)
-			{
-				if (shapes_list[i]->isitDeleted() == TRUE)
-					delete shapes_list[i];
-				else
-					temp_list.push_back(shapes_list[i]);
-			}
-			shapes_list = temp_list;
-			list_number = shapes_list.size();
-			
+	//						shapes_list[i] = temp;
+	//					}
+	//					else
+	//					{
+	//						shapes_list[i]->Update(rectView);
+	//						shapes_list[j]->Update(rectView);
+	//					}
+	//					break;
+	//				}
+	//			}
+	//			shapes_list[i]->Update(rectView);
+	//		}
+	//		vector<CObject*> temp_list;
+	//		for (int i = 0; i < shapes_list.size(); i++)
+	//		{
+	//			if (shapes_list[i]->isitDeleted() == TRUE)
+	//				delete shapes_list[i];
+	//			else
+	//				temp_list.push_back(shapes_list[i]);
+	//		}
+	//		shapes_list = temp_list;
+	//		list_number = shapes_list.size();
+	//		
 
-			break;
-		}
-		case 3: // 분열
-		{
-			for (int i = 0; i < list_number; i++)
-			{
-				for (int j = 0; j < list_number; j++)
-				{
-					if (j == i || shapes_list[j]->isitDeleted() == TRUE || shapes_list[j]->isitDevide() == TRUE)
-						continue;
+	//		break;
+	//	}
+	//	case 3: // 분열
+	//	{
+	//		for (int i = 0; i < list_number; i++)
+	//		{
+	//			for (int j = 0; j < list_number; j++)
+	//			{
+	//				if (j == i || shapes_list[j]->isitDeleted() == TRUE || shapes_list[j]->isitDevide() == TRUE)
+	//					continue;
 
-					/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
-					if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
-					{
-						if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
-						{
-							if (shapes_list[i]->getRadius() <= 10)
-							{
-								shapes_list[i]->setDeleted();
-								break;
-							}
+	//				/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
+	//				if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
+	//				{
+	//					if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
+	//					{
+	//						if (shapes_list[i]->getRadius() <= 10)
+	//						{
+	//							shapes_list[i]->setDeleted();
+	//							break;
+	//						}
 
-							for (int k = 0; k < 2; k++)
-							{
-								CObject* temp = nullptr;
-								POINT ptemp = { shapes_list[i]->getX() + 20*k, shapes_list[i]->getY() + 20*k };
-								switch (shapes_list[i]->getType())
-								{
-								case Circle:
-									temp = new CCircle(ptemp);
-									break;
-								case Rect:
-									temp = new CRect(ptemp);
-									break;
-								case Star:
-									temp = new CStar(ptemp);
-									break;
-								}
-								temp->setRadius(shapes_list[i]->getRadius() / 3 + shapes_list[j]->getRadius() / 3);
-								temp->setCollide();
-								temp->setDevide();
+	//						for (int k = 0; k < 2; k++)
+	//						{
+	//							CObject* temp = nullptr;
+	//							POINT ptemp = { shapes_list[i]->getX() + 20*k, shapes_list[i]->getY() + 20*k };
+	//							switch (shapes_list[i]->getType())
+	//							{
+	//							case Circle:
+	//								temp = new CCircle(ptemp);
+	//								break;
+	//							case Rect:
+	//								temp = new CRect(ptemp);
+	//								break;
+	//							case Star:
+	//								temp = new CStar(ptemp);
+	//								break;
+	//							}
+	//							temp->setRadius(shapes_list[i]->getRadius() / 3 + shapes_list[j]->getRadius() / 3);
+	//							temp->setCollide();
+	//							temp->setDevide();
 
-								shapes_list.push_back(temp);
-							}
+	//							shapes_list.push_back(temp);
+	//						}
 
-							shapes_list[i]->setDeleted();
-						}
-						else
-						{
-							shapes_list[i]->Update(rectView);
-							shapes_list[j]->Update(rectView);
-						}
-						break;
-					}
-				}
-				shapes_list[i]->Update(rectView);
-			}
-			vector<CObject*> temp_list;
-			for (int i = 0; i < shapes_list.size(); i++)
-			{
-				if (shapes_list[i]->isitDeleted() == TRUE)
-					delete shapes_list[i];
-				else
-					temp_list.push_back(shapes_list[i]);
-			}
-			shapes_list = temp_list;
-			list_number = shapes_list.size();
+	//						shapes_list[i]->setDeleted();
+	//					}
+	//					else
+	//					{
+	//						shapes_list[i]->Update(rectView);
+	//						shapes_list[j]->Update(rectView);
+	//					}
+	//					break;
+	//				}
+	//			}
+	//			shapes_list[i]->Update(rectView);
+	//		}
+	//		vector<CObject*> temp_list;
+	//		for (int i = 0; i < shapes_list.size(); i++)
+	//		{
+	//			if (shapes_list[i]->isitDeleted() == TRUE)
+	//				delete shapes_list[i];
+	//			else
+	//				temp_list.push_back(shapes_list[i]);
+	//		}
+	//		shapes_list = temp_list;
+	//		list_number = shapes_list.size();
 
-			break;
-		}
-		}
+	//		break;
+	//	}
+	//	}
 
 		
 		InvalidateRgn(hWnd, NULL, TRUE);
@@ -499,20 +535,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
 		// TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
 
+		//for (int i = 0; i < shapes_list.size(); i++)
+		//{
+		//	if (!shapes_list[i]->isifSelect())
+		//		SelectObject(hdc, oldBrush);
+		//	else
+		//		SelectObject(hdc, hBrush);
+		//	shapes_list[i]->Draw(hdc);
+		//	shapes_list[i]->setCollideFalse();
+		//	shapes_list[i]->setDevideFalse();
+		//}
+
 		//DrawBitmap(hWnd, hdc); // 비트맵 그리기 함수
-
-		for (int i = 0; i < shapes_list.size(); i++)
-		{
-			if (!shapes_list[i]->isifSelect())
-				SelectObject(hdc, oldBrush);
-			else
-				SelectObject(hdc, hBrush);
-			shapes_list[i]->Draw(hdc);
-			shapes_list[i]->setCollideFalse();
-			shapes_list[i]->setDevideFalse();
-		}
-
-
+		DrawBitmapDoubleBuffering(hWnd, hdc);
+		DrawRectText(hdc);
 
 		// 여기까지 그리기
 		DeleteObject(hBrush);
@@ -520,6 +556,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 	case WM_DESTROY:
+		KillTimer(hWnd, timer_ID_2);
 		HideCaret(hWnd);
 		DestroyCaret();
 		PostQuitMessage(0);
@@ -654,26 +691,45 @@ void OutFromFile(TCHAR filename[], HWND hWnd)
 
 void CreateBitmap()
 {
-	hBackImage = (HBITMAP)LoadImage(NULL, TEXT("images/수지.bmp"), 
+	// 수지
+	hBackImage = (HBITMAP)LoadImage(NULL, TEXT("images/Background.bmp"), 
 		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION); // 이미지, 좌표, 옵션들 설정
 	if (hBackImage == NULL)
 	{
 		DWORD dwError = GetLastError();
-		MessageBox(NULL, _T("이미지 로드 에러"), _T("에러"), MB_OK);
+		MessageBox(NULL, _T("이미지 로드 에러 1"), _T("에러"), MB_OK);
 	}
-	GetObject(hBackImage, sizeof(BITMAP), &bitBack); // 저장을 어디에 하는지?
+	GetObject(hBackImage, sizeof(BITMAP), &bitBack); 
 
+	// 시공
 	hTransparentImage = (HBITMAP)LoadImage(NULL, TEXT("images/sigong.bmp"),
-		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE); // 이미지, 좌표, 옵션들 설정
+		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE); 
 	if (hTransparentImage == NULL)
 	{
 		DWORD dwError = GetLastError();
-		MessageBox(NULL, _T("이미지 로드 에러"), _T("에러"), MB_OK);
+		MessageBox(NULL, _T("이미지 로드 에러 2"), _T("에러"), MB_OK);
 	}
-	GetObject(hTransparentImage, sizeof(BITMAP), &bitBackTransparent); // 저장을 어디에 하는지?
+	GetObject(hTransparentImage, sizeof(BITMAP), &bitBackTransparent); 
 
+	// 제로
+	hAniImage = (HBITMAP)LoadImage(NULL, TEXT("images/zero_run.bmp"),
+		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION); 
+	if (hAniImage == NULL)
+	{
+		DWORD dwError = GetLastError();
+		MessageBox(NULL, _T("이미지 로드 에러 3"), _T("에러"), MB_OK);
+	}
+	GetObject(hAniImage, sizeof(BITMAP), &bitAni); // 저장을 어디에 하는지?
+
+	// 애니메이션 설정값 계산
+	RUN_FRAME_MAX = bitAni.bmWidth / SPRITE_SIZE_X - 1; // -1 해야 시작점이 ㅁㄴㅇㄹ
+	RUN_FRAME_MIN = 2; // 위치값
+	curframe = RUN_FRAME_MIN;
+	SPRITE_FRAME_COUNT_X = bitAni.bmWidth / SPRITE_SIZE_X;
+	SPRITE_FRAME_COUNT_Y = bitAni.bmHeight / SPRITE_SIZE_Y;
 }
 
+static int xPos = 0;
 void DrawBitmap(HWND hWnd, HDC hdc)
 {
 	HDC hMemDC;
@@ -706,10 +762,126 @@ void DrawBitmap(HWND hWnd, HDC hdc)
 		SelectObject(hMemDC, hOldBitmap); 
 		DeleteDC(hMemDC);
 	}
+
+	// 제로
+	{
+		hMemDC = CreateCompatibleDC(hdc);
+		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hAniImage);
+		bx = bitAni.bmWidth / SPRITE_FRAME_COUNT_X; 
+		by = bitAni.bmHeight / SPRITE_FRAME_COUNT_Y; // 전체 이미지를 다 따오는게 아니라서, 나눠주어야 한다
+
+		int xStart = curframe * bx;
+		int yStart = 0;
+
+		// hMemDC, 0, 0 -> 이 0 0 위치가 사진 시작 위치
+		/*TransparentBlt(hdc, 250, 250, bx, by, hMemDC, 0, 0, bx, by, RGB(255, 0, 255));*/
+		TransparentBlt(hdc, xPos, 250, bx, by, hMemDC, xStart, yStart, bx, by, RGB(255, 0, 255));
+
+		SelectObject(hMemDC, hOldBitmap);
+		DeleteDC(hMemDC);
+	}
 }
 
 void DeleteBitmap()
 {
 	DeleteObject(hBackImage);
 	DeleteObject(hTransparentImage);
+}
+
+void Animation(int xPos, int yPos, HDC hdc)
+{
+}
+
+void UpdateFrame(HWND hWnd)
+{
+	curframe++;
+	if (curframe > RUN_FRAME_MAX)
+	{
+		curframe = RUN_FRAME_MIN;
+	}
+	InvalidateRect(hWnd, NULL, false);
+}
+
+static int yPos = 0;
+VOID CALLBACK AniProc(HWND hWnd, UINT uMsg, UINT idEvent, DWORD dwTime)
+{
+	UpdateFrame(hWnd);
+
+	yPos += 5;
+	xPos += 5;
+	if (yPos > rectView.bottom) yPos = 10;
+	if (xPos > rectView.right) xPos = 10;
+}
+
+void DrawRectText(HDC hdc)
+{
+	TCHAR strTest[] = _T("이미지 출력");
+	TextOut(hdc, 10, yPos, strTest, _tcslen(strTest));
+}
+
+void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc)
+{
+	HDC hMemDC;
+	HBITMAP hOldBitmap;
+	int bx, by;
+
+	HDC hMemDC2;
+	HBITMAP hOldBitmap2;
+
+
+	hMemDC = CreateCompatibleDC(hdc);
+	if (hDoubleBufferImage == NULL)
+	{
+		hDoubleBufferImage = CreateCompatibleBitmap(hdc, rectView.right, rectView.bottom); // 화면 영역 만큼 만들어 준다
+	}
+	hOldBitmap = (HBITMAP)SelectObject(hMemDC, hDoubleBufferImage);
+
+	{
+		hMemDC2 = CreateCompatibleDC(hMemDC); // hMemDC에 기반한 DC2
+		hOldBitmap2 = (HBITMAP)SelectObject(hMemDC2, hBackImage);
+		bx = bitBack.bmWidth;
+		by = bitBack.bmHeight;
+
+		BitBlt(hMemDC, 0, 0, bx, by, hMemDC2, 0, 0, SRCCOPY);
+
+		SelectObject(hMemDC2, hOldBitmap2);
+		DeleteDC(hMemDC2);
+	}
+
+	// 시공
+	{
+		hMemDC2 = CreateCompatibleDC(hMemDC);
+		hOldBitmap2 = (HBITMAP)SelectObject(hMemDC2, hTransparentImage);
+		bx = bitBackTransparent.bmWidth;
+		by = bitBackTransparent.bmHeight;
+
+		/*BitBlt(hdc, 100, 100, bx, by, hMemDC, 0, 0, SRCCOPY); */
+		TransparentBlt(hMemDC, 150, 150, bx, by, hMemDC2, 0, 0, bx, by, RGB(255, 0, 255));
+
+		SelectObject(hMemDC2, hOldBitmap2);
+		DeleteDC(hMemDC2);
+	}
+
+	// 제로
+	{
+		hMemDC2 = CreateCompatibleDC(hMemDC);
+		hOldBitmap2 = (HBITMAP)SelectObject(hMemDC2, hAniImage);
+		bx = bitAni.bmWidth / SPRITE_FRAME_COUNT_X;
+		by = bitAni.bmHeight / SPRITE_FRAME_COUNT_Y; // 전체 이미지를 다 따오는게 아니라서, 나눠주어야 한다
+
+		int xStart = curframe * bx;
+		int yStart = 0;
+
+		// hMemDC, 0, 0 -> 이 0 0 위치가 사진 시작 위치
+		/*TransparentBlt(hdc, 250, 250, bx, by, hMemDC, 0, 0, bx, by, RGB(255, 0, 255));*/
+		TransparentBlt(hMemDC, xPos, 250, bx, by, hMemDC2, xStart, yStart, bx, by, RGB(255, 0, 255));
+
+		SelectObject(hMemDC2, hOldBitmap2);
+		DeleteDC(hMemDC2);
+	}
+
+	// hdc에 그려주기 (hdc가 front buffer)
+	BitBlt(hdc, 0, 0, rectView.right, rectView.bottom, hMemDC, 0, 0, SRCCOPY);
+	SelectObject(hMemDC, hOldBitmap);
+	DeleteObject(hMemDC);
 }
