@@ -4,7 +4,7 @@
 
 enum Type
 {
-	Circle, Rect, Star
+	Circle, REct, Star
 	// 별 > 원 > 사각형 > 별
 };
 
@@ -77,8 +77,8 @@ private :
 	LONG height;
 public:
 	CRect(POINT point)
-		: CObject(point, type = Rect) {
-		type = Rect;
+		: CObject(point, type = REct) {
+		type = REct;
 		height = radius;
 		pt[0] = { -radius, -radius };
 		pt[1] = { -radius, +radius };

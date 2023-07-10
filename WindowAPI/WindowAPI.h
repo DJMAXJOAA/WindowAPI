@@ -20,3 +20,6 @@ VOID CALLBACK AniProc(HWND hWnd, UINT uMsg, UINT idEvent, DWORD dwTime);
 void DrawRectText(HDC hdc);
 
 void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc);
+
+BOOL CALLBACK Dialog_Test1_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam);
+

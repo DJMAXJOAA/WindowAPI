@@ -22,3 +22,9 @@
 #include <math.h>
 #include <commdlg.h>
 #include <stdio.h>
+
+// GDI
+#include <objidl.h>
+#include <gdiplus.h>
+#pragma comment(lib, "Gdiplus.lib")
+

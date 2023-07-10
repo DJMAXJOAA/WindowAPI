@@ -331,9 +331,9 @@ LONG CObject::getCompatibility()
     switch (this->type)
     {
     case Circle:
-            return Rect;
+            return REct;
         break;
-    case Rect:
+    case REct:
             return Star;
         break;
     case Star:

@@ -28,9 +28,11 @@ int SPRITE_FRAME_COUNT_Y = 0; // 나중에 계산
 HBITMAP hDoubleBufferImage;
 // << : ANI
 
-// >> : text
-
-// << :
+using namespace Gdiplus;
+ULONG_PTR g_GdiToken;
+void Gdi_Init();
+void Gdi_Draw(HDC hdc);
+void Gdi_End();
 
 RECT rectView;
 
@@ -48,7 +50,6 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -84,6 +85,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//		DispatchMessage(&msg);
 	//	}
 	//}
+
+	Gdi_Init();
+
 	while (true)
 	{
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -103,6 +107,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			// update(), render()...
 		}
 	}
+
+	Gdi_End();
 
 	return (int)msg.wParam;
 }
@@ -206,7 +212,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		state = 1;
 		ofn.lpstrFile = lpstrFile;
 		GetClientRect(hWnd, &rectView);
-		/*SetTimer(hWnd, 1, 20, NULL);*/
 
 		SetTimer(hWnd, timer_ID_2, 10, AniProc); // 제로 애니메이션 설정값
 
@@ -221,17 +226,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_RBUTTONDOWN:
 	{
-		cur_point.x = LOWORD(lParam);
-		cur_point.y = HIWORD(lParam);
-		for (int i = 0; i < list_number; i++)
-		{
-			if (shapes_list[i]->InObject(cur_point.x, cur_point.y) == TRUE)
-			{
-				shapes_list[i]->setSelection();
-				break;
-			}
-		}
-		InvalidateRgn(hWnd, NULL, TRUE);
+		DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, Dialog_Test1_Proc);
+
+		//cur_point.x = LOWORD(lParam);
+		//cur_point.y = HIWORD(lParam);
+		//for (int i = 0; i < list_number; i++)
+		//{
+		//	if (shapes_list[i]->InObject(cur_point.x, cur_point.y) == TRUE)
+		//	{
+		//		shapes_list[i]->setSelection();
+		//		break;
+		//	}
+		//}
+		//InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
 	case WM_LBUTTONDOWN:
@@ -273,182 +280,179 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_MOUSEMOVE:
 	{
-		
 		break;
 	}
 	case WM_TIMER:
 	{
 		if (wParam == timer_ID_1)
 		{
-
 		}
 
 		if (wParam == timer_ID_2)
 		{
 			UpdateFrame(hWnd);
 		}
-	//{
-	//	switch (state)
-	//	{
-	//	case 1: // 반사
-	//	{
-	//	for (int i = 0; i < shapes_list.size(); i++)
-	//	{
-	//		for (int j = 0; j < shapes_list.size(); j++)
-	//		{
-	//			if (j == i)
-	//				continue;
-	//			if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
-	//			{
-	//				shapes_list[i]->setCollide();
-	//				shapes_list[j]->setCollide();
-	//				shapes_list[i]->Update(rectView);
-	//				shapes_list[j]->Update(rectView);
-	//				break;
-	//			}
-	//		}
-	//		shapes_list[i]->Update(rectView);
-	//	}
-	//	break;
-	//	}
-	//	case 2: // 합체
-	//	{
-	//		for (int i = 0; i < shapes_list.size(); i++)
-	//		{
-	//			for (int j = 0; j < shapes_list.size(); j++)
-	//			{
-	//				if (j == i || shapes_list[j]->isitDeleted() == TRUE)
-	//					continue;
+		//{
+		//	switch (state)
+		//	{
+		//	case 1: // 반사
+		//	{
+		//	for (int i = 0; i < shapes_list.size(); i++)
+		//	{
+		//		for (int j = 0; j < shapes_list.size(); j++)
+		//		{
+		//			if (j == i)
+		//				continue;
+		//			if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
+		//			{
+		//				shapes_list[i]->setCollide();
+		//				shapes_list[j]->setCollide();
+		//				shapes_list[i]->Update(rectView);
+		//				shapes_list[j]->Update(rectView);
+		//				break;
+		//			}
+		//		}
+		//		shapes_list[i]->Update(rectView);
+		//	}
+		//	break;
+		//	}
+		//	case 2: // 합체
+		//	{
+		//		for (int i = 0; i < shapes_list.size(); i++)
+		//		{
+		//			for (int j = 0; j < shapes_list.size(); j++)
+		//			{
+		//				if (j == i || shapes_list[j]->isitDeleted() == TRUE)
+		//					continue;
 
-	//				/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
-	//				if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
-	//				{
-	//					if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
-	//					{
-	//						if (shapes_list[i]->getRadius() > 160)
-	//						{
-	//							shapes_list[i]->setDeleted();
-	//							shapes_list[j]->setDeleted();
-	//							break;
-	//						}
-	//						CObject* temp = nullptr;
-	//						POINT ptemp = { shapes_list[i]->getX(), shapes_list[i]->getY() };
-	//						switch (shapes_list[i]->getType())
-	//						{
-	//						case Circle:
-	//							temp = new CCircle(ptemp);
-	//							break;
-	//						case Rect:
-	//							temp = new CRect(ptemp);
-	//							break;
-	//						case Star:
-	//							temp = new CStar(ptemp);
-	//							break;
-	//						}
-	//						temp->setRadius(shapes_list[i]->getRadius() + shapes_list[j]->getRadius() / 2);
-	//						temp->setCollide();
-	//						shapes_list[j]->setRadius(0);
+		//				/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
+		//				if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
+		//				{
+		//					if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
+		//					{
+		//						if (shapes_list[i]->getRadius() > 160)
+		//						{
+		//							shapes_list[i]->setDeleted();
+		//							shapes_list[j]->setDeleted();
+		//							break;
+		//						}
+		//						CObject* temp = nullptr;
+		//						POINT ptemp = { shapes_list[i]->getX(), shapes_list[i]->getY() };
+		//						switch (shapes_list[i]->getType())
+		//						{
+		//						case Circle:
+		//							temp = new CCircle(ptemp);
+		//							break;
+		//						case Rect:
+		//							temp = new CRect(ptemp);
+		//							break;
+		//						case Star:
+		//							temp = new CStar(ptemp);
+		//							break;
+		//						}
+		//						temp->setRadius(shapes_list[i]->getRadius() + shapes_list[j]->getRadius() / 2);
+		//						temp->setCollide();
+		//						shapes_list[j]->setRadius(0);
 
-	//						delete shapes_list[i];
-	//						shapes_list[j]->setDeleted();
+		//						delete shapes_list[i];
+		//						shapes_list[j]->setDeleted();
 
-	//						shapes_list[i] = temp;
-	//					}
-	//					else
-	//					{
-	//						shapes_list[i]->Update(rectView);
-	//						shapes_list[j]->Update(rectView);
-	//					}
-	//					break;
-	//				}
-	//			}
-	//			shapes_list[i]->Update(rectView);
-	//		}
-	//		vector<CObject*> temp_list;
-	//		for (int i = 0; i < shapes_list.size(); i++)
-	//		{
-	//			if (shapes_list[i]->isitDeleted() == TRUE)
-	//				delete shapes_list[i];
-	//			else
-	//				temp_list.push_back(shapes_list[i]);
-	//		}
-	//		shapes_list = temp_list;
-	//		list_number = shapes_list.size();
-	//		
+		//						shapes_list[i] = temp;
+		//					}
+		//					else
+		//					{
+		//						shapes_list[i]->Update(rectView);
+		//						shapes_list[j]->Update(rectView);
+		//					}
+		//					break;
+		//				}
+		//			}
+		//			shapes_list[i]->Update(rectView);
+		//		}
+		//		vector<CObject*> temp_list;
+		//		for (int i = 0; i < shapes_list.size(); i++)
+		//		{
+		//			if (shapes_list[i]->isitDeleted() == TRUE)
+		//				delete shapes_list[i];
+		//			else
+		//				temp_list.push_back(shapes_list[i]);
+		//		}
+		//		shapes_list = temp_list;
+		//		list_number = shapes_list.size();
+		//
 
-	//		break;
-	//	}
-	//	case 3: // 분열
-	//	{
-	//		for (int i = 0; i < list_number; i++)
-	//		{
-	//			for (int j = 0; j < list_number; j++)
-	//			{
-	//				if (j == i || shapes_list[j]->isitDeleted() == TRUE || shapes_list[j]->isitDevide() == TRUE)
-	//					continue;
+		//		break;
+		//	}
+		//	case 3: // 분열
+		//	{
+		//		for (int i = 0; i < list_number; i++)
+		//		{
+		//			for (int j = 0; j < list_number; j++)
+		//			{
+		//				if (j == i || shapes_list[j]->isitDeleted() == TRUE || shapes_list[j]->isitDevide() == TRUE)
+		//					continue;
 
-	//				/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
-	//				if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
-	//				{
-	//					if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
-	//					{
-	//						if (shapes_list[i]->getRadius() <= 10)
-	//						{
-	//							shapes_list[i]->setDeleted();
-	//							break;
-	//						}
+		//				/*if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE && shapes_list[j]->isitCollide() == FALSE)*/
+		//				if (shapes_list[i]->Collision(*shapes_list[j], rectView) == TRUE)
+		//				{
+		//					if (shapes_list[i]->getCompatibility() == shapes_list[j]->getType())
+		//					{
+		//						if (shapes_list[i]->getRadius() <= 10)
+		//						{
+		//							shapes_list[i]->setDeleted();
+		//							break;
+		//						}
 
-	//						for (int k = 0; k < 2; k++)
-	//						{
-	//							CObject* temp = nullptr;
-	//							POINT ptemp = { shapes_list[i]->getX() + 20*k, shapes_list[i]->getY() + 20*k };
-	//							switch (shapes_list[i]->getType())
-	//							{
-	//							case Circle:
-	//								temp = new CCircle(ptemp);
-	//								break;
-	//							case Rect:
-	//								temp = new CRect(ptemp);
-	//								break;
-	//							case Star:
-	//								temp = new CStar(ptemp);
-	//								break;
-	//							}
-	//							temp->setRadius(shapes_list[i]->getRadius() / 3 + shapes_list[j]->getRadius() / 3);
-	//							temp->setCollide();
-	//							temp->setDevide();
+		//						for (int k = 0; k < 2; k++)
+		//						{
+		//							CObject* temp = nullptr;
+		//							POINT ptemp = { shapes_list[i]->getX() + 20*k, shapes_list[i]->getY() + 20*k };
+		//							switch (shapes_list[i]->getType())
+		//							{
+		//							case Circle:
+		//								temp = new CCircle(ptemp);
+		//								break;
+		//							case Rect:
+		//								temp = new CRect(ptemp);
+		//								break;
+		//							case Star:
+		//								temp = new CStar(ptemp);
+		//								break;
+		//							}
+		//							temp->setRadius(shapes_list[i]->getRadius() / 3 + shapes_list[j]->getRadius() / 3);
+		//							temp->setCollide();
+		//							temp->setDevide();
 
-	//							shapes_list.push_back(temp);
-	//						}
+		//							shapes_list.push_back(temp);
+		//						}
 
-	//						shapes_list[i]->setDeleted();
-	//					}
-	//					else
-	//					{
-	//						shapes_list[i]->Update(rectView);
-	//						shapes_list[j]->Update(rectView);
-	//					}
-	//					break;
-	//				}
-	//			}
-	//			shapes_list[i]->Update(rectView);
-	//		}
-	//		vector<CObject*> temp_list;
-	//		for (int i = 0; i < shapes_list.size(); i++)
-	//		{
-	//			if (shapes_list[i]->isitDeleted() == TRUE)
-	//				delete shapes_list[i];
-	//			else
-	//				temp_list.push_back(shapes_list[i]);
-	//		}
-	//		shapes_list = temp_list;
-	//		list_number = shapes_list.size();
+		//						shapes_list[i]->setDeleted();
+		//					}
+		//					else
+		//					{
+		//						shapes_list[i]->Update(rectView);
+		//						shapes_list[j]->Update(rectView);
+		//					}
+		//					break;
+		//				}
+		//			}
+		//			shapes_list[i]->Update(rectView);
+		//		}
+		//		vector<CObject*> temp_list;
+		//		for (int i = 0; i < shapes_list.size(); i++)
+		//		{
+		//			if (shapes_list[i]->isitDeleted() == TRUE)
+		//				delete shapes_list[i];
+		//			else
+		//				temp_list.push_back(shapes_list[i]);
+		//		}
+		//		shapes_list = temp_list;
+		//		list_number = shapes_list.size();
 
-	//		break;
-	//	}
-	//	}
+		//		break;
+		//	}
+		//	}
 
-		
 		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
@@ -466,13 +470,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			UINT state = GetMenuState(hSubMenu, ID_EDITCOPY, MF_BYCOMMAND);
 			if ((state & MF_DISABLED) || (state & MF_GRAYED))
 				EnableMenuItem(hSubMenu, ID_EDITCOPY, MF_ENABLED);
-			else if(state == MF_ENABLED)
+			else if (state == MF_ENABLED)
 				EnableMenuItem(hSubMenu, ID_EDITCOPY, MF_GRAYED);
 		}
 		InvalidateRgn(hWnd, NULL, TRUE);
 		break;
 	}
-    case WM_KEYUP:
+	case WM_KEYUP:
 	{
 		break;
 	}
@@ -501,11 +505,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			else if (answ == IDNO)
 			{
-
 			}
 			else
 			{
-
 			}
 			InvalidateRgn(hWnd, NULL, TRUE);
 			break;
@@ -518,7 +520,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			state = 3;
 			break;
 		case ID_FILEOPEN:
-			{
+		{
 			memset(&ofn, 0, sizeof(OPENFILENAME));
 			ofn.lStructSize = sizeof(OPENFILENAME);
 			ofn.hwndOwner = hWnd; // 부모 윈도우 -> 파일 오픈 창이 닫혔을때 어디로 가는지
@@ -586,8 +588,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
-}
-return 0;
+	}
+	return 0;
 }
 
 // 정보 대화 상자의 메시지 처리기입니다.
@@ -712,28 +714,28 @@ void OutFromFile(TCHAR filename[], HWND hWnd)
 void CreateBitmap()
 {
 	// 수지
-	hBackImage = (HBITMAP)LoadImage(NULL, TEXT("images/수지.bmp"), 
+	hBackImage = (HBITMAP)LoadImage(NULL, TEXT("images/수지.bmp"),
 		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION); // 이미지, 좌표, 옵션들 설정
 	if (hBackImage == NULL)
 	{
 		DWORD dwError = GetLastError();
 		MessageBox(NULL, _T("이미지 로드 에러 1"), _T("에러"), MB_OK);
 	}
-	GetObject(hBackImage, sizeof(BITMAP), &bitBack); 
+	GetObject(hBackImage, sizeof(BITMAP), &bitBack);
 
 	// 시공
 	hTransparentImage = (HBITMAP)LoadImage(NULL, TEXT("images/sigong.bmp"),
-		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE); 
+		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	if (hTransparentImage == NULL)
 	{
 		DWORD dwError = GetLastError();
 		MessageBox(NULL, _T("이미지 로드 에러 2"), _T("에러"), MB_OK);
 	}
-	GetObject(hTransparentImage, sizeof(BITMAP), &bitBackTransparent); 
+	GetObject(hTransparentImage, sizeof(BITMAP), &bitBackTransparent);
 
 	// 제로
 	hAniImage = (HBITMAP)LoadImage(NULL, TEXT("images/zero_run.bmp"),
-		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION); 
+		IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION);
 	if (hAniImage == NULL)
 	{
 		DWORD dwError = GetLastError();
@@ -765,7 +767,7 @@ void DrawBitmap(HWND hWnd, HDC hdc)
 	HDC hMemDC;
 	HBITMAP hOldBitmap;
 	int bx, by;
-	
+
 	// 수지
 	{
 		/* 계속 그려줄 그림이라면, SelectObject 설정만 하고 리셋+반환을 안해도 된다 */
@@ -782,15 +784,15 @@ void DrawBitmap(HWND hWnd, HDC hdc)
 
 	// 시공
 	{
-		hMemDC = CreateCompatibleDC(hdc); 
-		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hTransparentImage); 
+		hMemDC = CreateCompatibleDC(hdc);
+		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hTransparentImage);
 		bx = bitBackTransparent.bmWidth;
 		by = bitBackTransparent.bmHeight;
 
 		/*BitBlt(hdc, 100, 100, bx, by, hMemDC, 0, 0, SRCCOPY); */
 		TransparentBlt(hdc, 150, 150, bx, by, hMemDC, 0, 0, bx, by, RGB(255, 0, 255));
 
-		SelectObject(hMemDC, hOldBitmap); 
+		SelectObject(hMemDC, hOldBitmap);
 		DeleteDC(hMemDC);
 	}
 
@@ -798,7 +800,7 @@ void DrawBitmap(HWND hWnd, HDC hdc)
 	{
 		hMemDC = CreateCompatibleDC(hdc);
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hAniImage);
-		bx = bitAni.bmWidth / SPRITE_FRAME_COUNT_X; 
+		bx = bitAni.bmWidth / SPRITE_FRAME_COUNT_X;
 		by = bitAni.bmHeight / SPRITE_FRAME_COUNT_Y; // 전체 이미지를 다 따오는게 아니라서, 나눠주어야 한다
 
 		int xStart = curframe * bx;
@@ -811,7 +813,6 @@ void DrawBitmap(HWND hWnd, HDC hdc)
 		SelectObject(hMemDC, hOldBitmap);
 		DeleteDC(hMemDC);
 	}
-
 }
 
 void DeleteBitmap()
@@ -859,7 +860,6 @@ void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc)
 
 	HDC hMemDC2;
 	HBITMAP hOldBitmap2;
-
 
 	hMemDC = CreateCompatibleDC(hdc);
 	if (hDoubleBufferImage == NULL)
@@ -926,25 +926,209 @@ void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc)
 		bx = bitFront.bmWidth;
 		by = bitFront.bmHeight;
 
-		HBRUSH hBrush = CreateSolidBrush(RGB(255, 255, 255));
+		HBRUSH hBrush = CreateSolidBrush(RGB(255, 0, 255));
 		HBRUSH oldBrush = (HBRUSH)SelectObject(hMemDC2, hBrush);
 
 		Ellipse(hMemDC2, 200, 100, 700, 500);
 
-		
 		SelectObject(hMemDC2, oldBrush);
 		DeleteObject(hBrush);
 
-		TransparentBlt(hMemDC, 0, 0, bx, by, hMemDC2, 0, 0, bx, by, RGB(255, 255, 255));
+		TransparentBlt(hMemDC, 0, 0, bx, by, hMemDC2, 0, 0, bx, by, RGB(255, 0, 255));
 
 		SelectObject(hMemDC2, hOldBitmap2);
 		DeleteDC(hMemDC2);
 	}
 
+	Gdi_Draw(hMemDC);
+
 	// 앞배경 - hdc에 그려줌
-	TransparentBlt(hdc, 0, 0, rectView.right, rectView.bottom, hMemDC, 0, 0, rectView.right, rectView.bottom, RGB(255, 255, 255));
+	TransparentBlt(hdc, 0, 0, rectView.right, rectView.bottom, hMemDC, 0, 0, rectView.right, rectView.bottom, RGB(255, 0, 255));
 	SelectObject(hMemDC, hOldBitmap);
 	DeleteObject(hMemDC);
-
 }
 
+BOOL CALLBACK Dialog_Test1_Proc(HWND hDlg, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+	static int check[3], Radio;
+	TCHAR hobby[][30] = { _T("독서"), _T("음악감상"), _T("게임") };
+	TCHAR sex[][30] = { _T("여자"), _T("남자") };
+	TCHAR output[200];
+
+	switch (iMsg)
+	{
+	case WM_INITDIALOG:
+	{
+		HWND hBtn = GetDlgItem(hDlg, IDC_BUTTON_STOP);
+		EnableWindow(hBtn, FALSE);
+		CheckRadioButton(hDlg, IDC_RADIO_FEMALE, IDC_RADIO_MALE, IDC_RADIO_FEMALE);
+		return 1;
+	}
+	return 1;
+
+	case WM_COMMAND:
+	{
+		switch (LOWORD(wParam))
+		{
+		case IDC_CHECK_READ:
+			check[0] = 1 - check[0];
+			break;
+		case IDC_CHECK_MUSIC:
+			check[1] = 1 - check[1];
+			break;
+		case IDC_CHECK_GAME:
+			check[2] = 1 - check[2];
+			break;
+
+		case IDC_RADIO_FEMALE:
+			Radio = 0;
+			break;
+		case IDC_RADIO_MALE:
+			Radio = 1;
+			break;
+		case IDC_BUTTON_OUTPUT:
+			_stprintf_s(output, _T("선택한 취미는 %s %s %s 입니다\r\n")
+				_T("선택한 성별은 %s입니다."),
+				check[0] ? hobby[0] : _T(""),
+				check[1] ? hobby[1] : _T(""),
+				check[2] ? hobby[2] : _T(""),
+				sex[Radio]);
+			SetDlgItemText(hDlg, IDC_EDIT_OUTPUT, output);
+
+			//case IDC_BUTTON_COPY:
+			//{
+			//	TCHAR str[100];
+			//	GetDlgItemText(hDlg, IDC_EDIT_INPUT, str, 100);
+			//	SetDlgItemText(hDlg, IDC_EDIT_COPY, str);
+			//	break;
+			//}
+
+			//case IDC_BUTTON_CLEAR:
+			//{
+			//	SetDlgItemText(hDlg, IDC_EDIT_CLEAR, _T(""));
+			//	SetDlgItemText(hDlg, IDC_EDIT_COPY, _T(""));
+			//	break;
+			//}
+
+		case IDC_BUTTON_END:
+		{
+			EndDialog(hDlg, 0);
+			break;
+		}
+
+		case IDCANCEL:
+		{
+			EndDialog(hDlg, 0);
+			break;
+		}
+		}
+	}
+	}
+}
+
+void Gdi_Init()
+{
+	GdiplusStartupInput gpsi;
+	GdiplusStartup(&g_GdiToken, &gpsi, NULL);
+}
+
+void Gdi_Draw(HDC hdc)
+{
+	Graphics graphics(hdc);
+
+	// text
+	SolidBrush brush(Color(255, 255, 0, 0));
+	FontFamily fontFamily(L"Times New Roman");
+	Font font(&fontFamily, 24, FontStyleRegular, UnitPixel);
+	PointF pointF(10.0f, 20.0f);
+	graphics.DrawString(L"Hello GDI+!!", -1, &font, pointF, &brush);
+
+	// line
+	Pen pen(Color(128, 0, 255, 255));
+	graphics.DrawLine(&pen, 0, 0, 200, 100);
+
+	// image
+	Image img((WCHAR*)L"images/sigong.png");
+	int w = img.GetWidth();
+	int h = img.GetHeight();
+	graphics.DrawImage(&img, 300, 100, w, h);
+
+	// ani : 제로
+	Image img2((WCHAR*)L"images/zero_run.png");
+	w = img2.GetWidth() / SPRITE_FRAME_COUNT_X;
+	h = img2.GetHeight() / SPRITE_FRAME_COUNT_Y;
+	int xStart = curframe * w;
+	int yStart = 0;
+
+	ImageAttributes imgAttr0;
+	imgAttr0.SetColorKey(Color(245, 0, 245), Color(255, 10, 255));
+	graphics.DrawImage(&img2, Rect(400, 100, w, h), xStart, yStart, w, h, UnitPixel, &imgAttr0);
+
+	// alpha rect
+	brush.SetColor(Color(128, 255, 0, 0));
+	graphics.FillRectangle(&brush, 100, 100, 200, 300);
+
+	// rotation
+	Image* pImg = nullptr;
+	pImg = Image::FromFile((WCHAR*)L"images/sigong.png");
+	int xPos = 400;
+	int yPos = 200;
+	if (pImg)
+	{
+		w = pImg->GetWidth();
+		h = pImg->GetHeight();
+
+		Gdiplus::Matrix mat;
+		static int rot = 0;
+		mat.RotateAt((rot % 360), Gdiplus::PointF(xPos + (float)(w / 2), yPos + (float)(h / 2)));
+		graphics.SetTransform(&mat);
+		graphics.DrawImage(pImg, xPos, yPos, w, h);
+		rot += 10;
+
+		mat.Reset();
+		graphics.SetTransform(&mat);
+	}
+
+	ImageAttributes imgAttr;
+	imgAttr.SetColorKey(Color(240, 0, 240), Color(255, 10, 255));
+	xPos = 500;
+	graphics.DrawImage(pImg, Rect(xPos, yPos, w, h), 0, 0, w, h, UnitPoint, &imgAttr);
+
+	// 투명 시공
+	if (pImg)
+	{
+		REAL transparency = 0.5f;
+		ColorMatrix colorMatrix =
+		{
+			1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, transparency, 0.0f,
+			0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+		};
+		imgAttr.SetColorMatrix(&colorMatrix);
+		xPos = 600;
+		graphics.DrawImage(pImg, Rect(xPos, yPos, w, h), 0, 0, w, h, UnitPixel, &imgAttr);
+	}
+
+	// 시공 영정사진
+	ColorMatrix grayMatrix =
+	{
+		0.3f, 0.3f, 0.3f, 0.0f, 0.0f,
+		0.6f, 0.6f, 0.6f, 0.0f, 0.0f,
+		0.1f, 0.1f, 0.1f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+	};
+	imgAttr.SetColorMatrix(&grayMatrix);
+	xPos = 700;
+	graphics.DrawImage(pImg, Rect(xPos, yPos, w, h), 0, 0, w, h, UnitPixel, &imgAttr);
+
+	xPos = 800;
+	pImg->RotateFlip(RotateNoneFlipX);
+}
+
+void Gdi_End()
+{
+	GdiplusShutdown(g_GdiToken);
+}

@@ -13,6 +13,24 @@
 #define IDC_WINDOWAPI                   109
 #define IDR_MAINFRAME                   128
 #define IDR_MENU1                       129
+#define IDD_DIALOG1                     131
+#define IDC_BUTTON_PRINT                1000
+#define IDC_BUTTON_END                  1001
+#define IDC_BUTTON3                     1002
+#define IDC_BUTTON_STOP                 1002
+#define IDC_BUTTON_CLEAR                1003
+#define IDC_BUTTON5                     1004
+#define IDC_BUTTON_DELETE               1004
+#define IDC_BUTTON_COPY                 1005
+#define IDC_EDIT_SOURCE                 1006
+#define IDC_EDIT_COPY                   1007
+#define IDC_CHECK_READ                  1008
+#define IDC_CHECK_MUSIC                 1009
+#define IDC_CHECK_GAME                  1010
+#define IDC_RADIO_FEMALE                1011
+#define IDC_EDIT_OUTPUT                 1012
+#define IDC_RADIO_MALE                  1013
+#define IDC_BUTTON_OUTPUT               1014
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_32773                        32773
@@ -33,9 +51,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        131
+#define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         32794
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_CONTROL_VALUE         1015
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif
